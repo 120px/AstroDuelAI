@@ -1,16 +1,45 @@
-import pyautogui
-import recognizing
+import get_window_info
+from vision_module import Vision
+from location_module import Location
+from astroduelenv import AstroDuelEnv
 import cv2
+import pyautogui
 import numpy as np
 from time import time
 
-ryu_img = cv2.imread("./assets/ryu.png", cv2.COLOR_RGB2BGR)
-gray_bot = cv2.imread("./assets/gray_bot.png", cv2.COLOR_RGB2BGR)
+
+def init_assets():
+    ryu_img = cv2.imread("./assets/ryu.png", cv2.COLOR_RGB2BGR)
+    gray_bot = cv2.imread("./assets/gray_bot.png", cv2.COLOR_RGB2BGR)
+    assets = {"ryu_img": ryu_img, "gray_bot": gray_bot}
+    return assets
 
 def main():
+    assets = init_assets()
     loop_time = time()
+
+    vision = Vision()
+    location = Location()
+    env = AstroDuelEnv()
+    state = env.reset()
+
+    for _ in range(500):
+        action = env.action_space.sample()
+        if action == 0:
+            pyautogui.press('left')
+        elif action == 1:
+            pyautogui.press('right')
+        elif action == 2:
+            pyautogui.press('up')
+        elif action == 3:
+            pyautogui.press('down')
+        print(action)
+        observation, reward, terminated, info, = env.step(action)
+        # print("State:", state, "Reward:", reward, "Done:", terminated)
+
+
     while True:
-        window_info = recognizing.get_window_with_title("Astro Duel 2")
+        window_info = get_window_info.get_window_with_title("Astro Duel 2")
         region = (window_info['X'], window_info['Y'],
                   window_info['Width'], window_info['Height'])
 
@@ -18,13 +47,16 @@ def main():
         screenshot = np.array(screenshot)
         screenshot = cv2.cvtColor(screenshot, cv2.COLOR_RGB2BGR)
 
-        result = cv2.matchTemplate(screenshot, gray_bot, cv2.TM_SQDIFF_NORMED)
-        min_val, max_val, min_loc, max_loc = cv2.minMaxLoc(result)
+        result_locate_player = vision.locate_player(game_screenshot=screenshot, player_img=assets["ryu_img"])
+        # result_locate_enemy = vision.locate_enemies(game_screenshot=screenshot, enemy=assets["gray_bot"])
 
-        needle_w = gray_bot.shape[1]
-        needle_h = gray_bot.shape[0]
+        player_locations = location.get_locations(object_to_locate=result_locate_player)
+        # enemy_locations = location.get_locations(object_to_locate=result_locate_enemy)
 
-        top_left = min_loc
+        needle_w = assets["ryu_img"].shape[1]
+        needle_h = assets["ryu_img"].shape[0]
+
+        top_left = player_locations['min_loc']
         bottom_right = (top_left[0] + needle_w, top_left[1] + needle_h)
 
         cv2.rectangle(screenshot, top_left, bottom_right, color=(0, 255, 0), thickness=2, lineType=cv2.LINE_4)
