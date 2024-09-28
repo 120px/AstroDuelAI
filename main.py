@@ -23,7 +23,7 @@ def main():
     env = AstroDuelEnv()
     state = env.reset()
 
-    for _ in range(500):
+    for _ in range(5):
         action = env.action_space.sample()
         if action == 0:
             pyautogui.press('left')
@@ -33,14 +33,15 @@ def main():
             pyautogui.press('up')
         elif action == 3:
             pyautogui.press('down')
-        print(action)
+        # print(action)
         observation, reward, terminated, info, = env.step(action)
         # print("State:", state, "Reward:", reward, "Done:", terminated)
 
 
     while True:
         window_info = get_window_info.get_window_with_title("Astro Duel 2")
-        region = (window_info['X'], window_info['Y'],
+        print(window_info)
+        region = (window_info['left'], window_info['top'],
                   window_info['Width'], window_info['Height'])
 
         screenshot = pyautogui.screenshot(region=region)
